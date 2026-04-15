@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極簡記帳本</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #333; }
+        .total-section { background: #333; color: white; padding: 1rem; border-radius: 8px; text-align: center; margin-bottom: 1rem; }
+        .input-group { margin-bottom: 1rem; }
+        input, select, button { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background-color: #5cb85c; color: white; border: none; cursor: pointer; font-size: 1rem; margin-top: 15px; }
+        button:hover { background-color: #4cae4c; }
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+        li { background: #f9f9f9; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+        .category { font-size: 0.8rem; color: #888; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>我的記帳本</h2>
+    
+    <div class="total-section">
+        總支出：NT$ <span id="totalAmount">0</span>
+    </div>
+
+    <div class="input-group">
+        <label>消費項目</label>
+        <input type="text" id="item" placeholder="例如：午餐">
+    </div>
+
+    <div class="input-group">
+        <label>金額</label>
+        <input type="number" id="amount" placeholder="金額">
+    </div>
+
+    <div class="input-group">
+        <label>分類</label>
+        <select id="category">
+            <option value="飲食">飲食</option>
+            <option value="交通">交通</option>
+            <option value="娛樂">娛樂</option>
+            <option value="其他">其他</option>
+        </select>
+    </div>
+
+    <button onclick="addRecord()">新增紀錄</button>
+
+    <ul id="recordList"></ul>
+</div>
+
+<script>
+    let total = 0;
+
+    function addRecord() {
+        const item = document.getElementById('item').value;
+        const amount = parseInt(document.getElementById('amount').value);
+        const category = document.getElementById('category').value;
+
+        if (!item || isNaN(amount)) {
+            alert('請輸入完整的項目與金額');
+            return;
+        }
+
+        // 更新總金額
+        total += amount;
+        document.getElementById('totalAmount').innerText = total;
+
+        // 新增列表
+        const list = document.getElementById('recordList');
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <span>${item} <span class="category">(${category})</span></span>
+            <span>$${amount}</span>
+        `;
+        list.prepend(li);
+
+        // 清空輸入框
+        document.getElementById('item').value = '';
+        document.getElementById('amount').value = '';
+    }
+</script>
+
+</body>
+</html>
