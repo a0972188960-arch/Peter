@@ -1,0 +1,30 @@
+name: Meta Daily Report
+
+on:
+  schedule:
+    # 這裡代表台灣時間 09:00 (UTC 01:00)
+    - cron: '0 1 * * *'
+  workflow_dispatch: # 讓你可以隨時手動點按執行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install facebook_business requests
+
+      - name: Run script
+        env:
+          LINE_ACCESS_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+          META_TOKEN: ${{ secrets.META_TOKEN }}
+          GROUP_ID: ${{ secrets.GROUP_ID }}
+        run: python final_report.py
