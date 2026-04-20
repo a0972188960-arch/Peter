@@ -27,7 +27,7 @@ ONESHOP_PW = os.getenv("ONESHOP_PW")
 
 # 統一更名並加入 GROUP_ID
 LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN") 
-GROUP_ID = os.getenv("GROUP_ID", "未設定 ID") 
+GROUP_ID = os.getenv("GROUP_ID") 
 
 USALE_LOGIN_URL = "https://ec.mallbic.com/Module/0_Login/Login.aspx?sid=wc1vp80o"
 USALE_ORDER_PAGE = "https://ec.mallbic.com/Module/1_Main/Main.aspx#frame=mode_order"
