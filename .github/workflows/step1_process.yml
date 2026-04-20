@@ -28,5 +28,6 @@ jobs:
           USALE_PW: ${{ secrets.USALE_PW }}
           ONESHOP_USER: ${{ secrets.ONESHOP_USER }}
           ONESHOP_PW: ${{ secrets.ONESHOP_PW }}
-          LINE_TOKEN: ${{ secrets.LINE_TOKEN }}
+          LINE_TOKEN: ${{ secrets.LINE_ACCESS_TOKEN }}
+          GROUP_ID: ${{ secrets.GROUP_ID }}
         run: python Step1_Notice.py
