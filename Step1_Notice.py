@@ -24,7 +24,8 @@ USALE_USER = os.getenv("USALE_USER", "peter")
 USALE_PW = os.getenv("USALE_PW", "Jd86P9Pff")
 ONESHOP_USER = os.getenv("ONESHOP_USER", "0905035715")
 ONESHOP_PW = os.getenv("ONESHOP_PW", "peter53606")
-LINE_TOKEN = os.getenv("LINE_TOKEN") 
+LINE_ACCESS_TOKEN = "CIM3KD9Wkl13WlWCbEkYe+Z6Z1+aJxHLz5JgR8Orfs3biF287HAlamKYZT0zyVWWPvJx3k/176/T2b7mdVxn9EX+aEDYsSL6oV305ZUrKNB6EtoUBrA92v5AKDyqC9+5r9jX5gWk2BlPnwHouzK2CwdB04t89/1O/w1cDnyilFU="
+GROUP_ID = "Cafceaafbed8c94dbe31840a9dcb80840"
 
 USALE_LOGIN_URL = "https://ec.mallbic.com/Module/0_Login/Login.aspx?sid=wc1vp80o"
 USALE_ORDER_PAGE = "https://ec.mallbic.com/Module/1_Main/Main.aspx#frame=mode_order"
