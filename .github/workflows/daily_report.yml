@@ -2,10 +2,10 @@ name: Meta Daily Report
 
 on:
   schedule:
-    # 每天台灣時間 09:00 執行 (UTC 01:00)
+    # 每天台灣時間 04:00 執行 (UTC 20:00)
     # 分 時 日 月 週
-    - cron: '0 1 * * *'
-  workflow_dispatch: # 讓你可以隨時手動點擊 Actions 頁面的 "Run workflow" 按鈕進行測試
+    - cron: '0 20 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
