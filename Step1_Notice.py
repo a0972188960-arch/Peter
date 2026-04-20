@@ -16,16 +16,18 @@ from selenium.webdriver.common.keys import Keys
 
 # ================= 設定區 (由 GitHub Secrets 讀取) =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-JSON_FILE = os.path.join(BASE_DIR, 'gcp-key.json')
+JSON_FILE = os.path.join(BASE_DIR, 'gcp-key.json') 
 SHEET_NAME = '迪品欠貨通知追蹤表' 
 
-# 從環境變數讀取敏感資訊 (優先讀取 GitHub Secrets，保護帳密不外流)
-USALE_USER = os.getenv("USALE_USER", "peter")
-USALE_PW = os.getenv("USALE_PW", "Jd86P9Pff")
-ONESHOP_USER = os.getenv("ONESHOP_USER", "0905035715")
-ONESHOP_PW = os.getenv("ONESHOP_PW", "peter53606")
-LINE_ACCESS_TOKEN = "CIM3KD9Wkl13WlWCbEkYe+Z6Z1+aJxHLz5JgR8Orfs3biF287HAlamKYZT0zyVWWPvJx3k/176/T2b7mdVxn9EX+aEDYsSL6oV305ZUrKNB6EtoUBrA92v5AKDyqC9+5r9jX5gWk2BlPnwHouzK2CwdB04t89/1O/w1cDnyilFU="
-GROUP_ID = "Cafceaafbed8c94dbe31840a9dcb80840"
+# 從環境變數讀取敏感資訊
+USALE_USER = os.getenv("USALE_USER")
+USALE_PW = os.getenv("USALE_PW")
+ONESHOP_USER = os.getenv("ONESHOP_USER")
+ONESHOP_PW = os.getenv("ONESHOP_PW")
+
+# 統一更名並加入 GROUP_ID
+LINE_ACCESS_TOKEN = os.getenv("LINE_ACCESS_TOKEN") 
+GROUP_ID = os.getenv("GROUP_ID", "未設定 ID") 
 
 USALE_LOGIN_URL = "https://ec.mallbic.com/Module/0_Login/Login.aspx?sid=wc1vp80o"
 USALE_ORDER_PAGE = "https://ec.mallbic.com/Module/1_Main/Main.aspx#frame=mode_order"
@@ -51,19 +53,20 @@ SHOP_MESSAGES = {
     }
 }
 
-# GitHub Actions 環境路徑通常在 /home/runner/
-DOWNLOAD_PATH = os.path.join(os.path.expanduser("~"), "Downloads")
+DOWNLOAD_PATH = os.getcwd() 
 # =====================================================
 
 def send_line_report(message):
     """LINE Notify 通報函數"""
-    if not LINE_TOKEN:
-        print("⚠️ 未偵測到 LINE_TOKEN，跳過通報。")
+    if not LINE_ACCESS_TOKEN: 
+        print("⚠️ 找不到 LINE_ACCESS_TOKEN")
         return
     try:
         url = "https://notify-api.line.me/api/notify"
-        headers = {"Authorization": f"Bearer {LINE_TOKEN}"}
-        data = {"message": f"\n{message}"}
+        headers = {"Authorization": f"Bearer {LINE_ACCESS_TOKEN}"}
+        # 訊息中帶入 GROUP_ID 方便識別
+        full_message = f"\n[群組: {GROUP_ID}]\n{message}"
+        data = {"message": full_message}
         requests.post(url, headers=headers, data=data)
     except Exception as e:
         print(f"LINE 通報失敗: {e}")
@@ -79,9 +82,7 @@ def sync_to_cloud_after_notice(order_list):
 
         print(f"📊 [雲端同步] 開始處理 {len(order_list)} 筆...")
         for i, oid in enumerate(order_list):
-            # 針對 429 錯誤增加延遲
-            if i > 0 and i % 2 == 0: time.sleep(3) 
-            
+            if i > 0 and i % 3 == 0: time.sleep(2)
             if oid in existing_orders:
                 row_idx = existing_orders[oid]
                 current_val = sheet.cell(row_idx, 2).value
@@ -106,17 +107,13 @@ def force_js_click_by_text(driver, text):
     script = f'var elements = document.querySelectorAll("li, div, span, button, a, .shop-name"); for (var i = 0; i < elements.length; i++) {{ if (elements[i].innerText.trim().includes("{text}")) {{ elements[i].scrollIntoView({{block: "center"}}); elements[i].click(); return "✅ OK"; }} }} return "❌ Fail";'
     return driver.execute_script(script)
 
-def force_js_click_v_popper_confirm(driver):
-    script = 'var popperBtn = document.querySelector(".v-popper button.btn-primary.ms-1"); if (popperBtn && popperBtn.innerText.includes("確認")) { popperBtn.click(); return "✅ OK"; } return "❌ Fail";'
-    return driver.execute_script(script)
-
 def process_notifications(driver, wait, shop_name, search_numbers):
     try:
         msg_config = SHOP_MESSAGES.get(shop_name, SHOP_MESSAGES["SHANER山人"])
         driver.get(f"https://admin.1shop.tw/shop/order/all?order_number={search_numbers}")
-        time.sleep(8)
+        time.sleep(10)
         wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "label[for='checkbox-all']"))).click()
-        time.sleep(1)
+        time.sleep(2)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '更多批次功能')]"))).click()
         time.sleep(2)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '寄送Email')]"))).click()
@@ -127,7 +124,7 @@ def process_notifications(driver, wait, shop_name, search_numbers):
         body_email.send_keys(Keys.END + Keys.ENTER)
         slow_type(body_email, msg_config["email_body"])
         wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-primary.ms-1"))).click()
-        time.sleep(4)
+        time.sleep(5)
         wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-default.ms-1"))).click()
         time.sleep(3)
         wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '更多批次功能')]"))).click()
@@ -139,43 +136,33 @@ def process_notifications(driver, wait, shop_name, search_numbers):
         sms_text = msg_config["sms_body"]
         driver.execute_script(f"arguments[0].value = '{sms_text}';", sms_body)
         sms_body.send_keys(Keys.SPACE)
-        time.sleep(2)
+        time.sleep(3)
         wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-primary.ms-1"))).click()
-        time.sleep(4)
+        time.sleep(5)
         wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.btn-default.ms-1"))).click()
         return True
     except Exception as e:
         print(f"⚠️ {shop_name} 通知異常: {e}")
         return False
 
-def switch_to_next_shop(driver, wait, target_name):
-    try:
-        top_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.header-icon.link-style.shop-name")))
-        top_btn.click()
-        time.sleep(2) 
-        force_js_click_v_popper_confirm(driver)
-        wait.until(EC.url_contains("switch"))
-        time.sleep(2)
-        wait.until(EC.element_to_be_clickable((By.XPATH, f"//div[@class='shop-name'][text()='{target_name}']"))).click()
-        time.sleep(6)
-        return True
-    except: return False
-
 def run_full_automation():
     options = webdriver.ChromeOptions()
-    # --- GitHub 執行必備設定 ---
-    options.add_argument("--headless")           
-    options.add_argument("--no-sandbox")          
-    options.add_argument("--disable-dev-shm-usage") 
-    options.add_argument("--disable-gpu")         
+    options.add_argument("--headless=new") 
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
     
-    # 讓 GitHub 也能下載檔案
-    prefs = {"download.default_directory": DOWNLOAD_PATH}
+    prefs = {
+        "download.default_directory": DOWNLOAD_PATH,
+        "download.prompt_for_download": False,
+        "download.directory_upgrade": True,
+        "safebrowsing.enabled": True
+    }
     options.add_experimental_option("prefs", prefs)
-
+    
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-    wait = WebDriverWait(driver, 30)
+    wait = WebDriverWait(driver, 40)
     
     try:
         print("1️⃣ [uSale] 開始匯出...")
@@ -183,60 +170,71 @@ def run_full_automation():
         wait.until(EC.presence_of_element_located((By.ID, "user_name"))).send_keys(USALE_USER)
         driver.find_element(By.ID, "user_pswd").send_keys(USALE_PW)
         driver.find_element(By.NAME, "submit").click()
-        time.sleep(3); driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.ESCAPE)
+        time.sleep(5)
         
         driver.get(USALE_ORDER_PAGE)
-        time.sleep(12); driver.switch_to.default_content()
+        time.sleep(15)
+        driver.switch_to.default_content()
         try: wait.until(EC.frame_to_be_available_and_switch_to_it(0))
         except: pass
+        
         wait.until(EC.element_to_be_clickable((By.ID, "tpage8"))).click()
         time.sleep(5); force_js_click_by_text(driver, "客服_通知缺換貨")
         time.sleep(10); force_js_click_by_text(driver, "匯出訂單")
         time.sleep(5); force_js_click_by_text(driver, "1shop要出貨訂單編號")
-        time.sleep(15)
+        
+        print("⏳ 等待 CSV 下載...")
+        time.sleep(25)
 
         print("2️⃣ [Data] 處理 CSV...")
-        if not os.path.exists(DOWNLOAD_PATH): os.makedirs(DOWNLOAD_PATH)
         all_files = glob.glob(os.path.join(DOWNLOAD_PATH, "*.csv"))
+        print(f"DEBUG: 目前目錄檔案有: {os.listdir(DOWNLOAD_PATH)}")
         valid_files = [f for f in all_files if not os.path.basename(f).startswith("~$") and "_已處理" not in f]
-        if not valid_files: raise Exception("找不到匯出的 CSV 檔案")
+        
+        if not valid_files: 
+            raise Exception("❌ 找不到匯出的 CSV 檔案")
         
         latest_file = max(valid_files, key=os.path.getmtime)
         try: df = pd.read_csv(latest_file, encoding='utf-8-sig')
         except: df = pd.read_csv(latest_file, encoding='big5')
+        
         order_list = df[df.columns[0]].astype(str).str.strip().tolist()
+        order_list = [o for o in order_list if o.lower() != 'nan' and o != '']
+        
+        if not order_list:
+            raise Exception("CSV 內容為空")
+
         search_numbers = "%2C".join(order_list)
 
         print("3️⃣ [1Shop] 登入中...")
         driver.get(ONESHOP_LOGIN_URL)
-        slow_type(wait.until(EC.presence_of_element_located((By.ID, "user_mobile"))), ONESHOP_USER)
-        slow_type(driver.find_element(By.ID, "user_password"), ONESHOP_PW)
-        driver.find_element(By.CSS_SELECTOR, "button.btn-primary.btn-cons").click()
-        
-        wait.until(EC.presence_of_element_located((By.XPATH, f"//div[@class='shop-name'][text()='{SHOPS_TO_PROCESS[0]}']")))
-        wait.until(EC.element_to_be_clickable((By.XPATH, f"//div[@class='shop-name'][text()='{SHOPS_TO_PROCESS[0]}']"))).click()
         time.sleep(5)
-
-        all_shops_success = True
-        for i, shop in enumerate(SHOPS_TO_PROCESS):
-            if not process_notifications(driver, wait, shop, search_numbers):
-                all_shops_success = False; break
-            if i < len(SHOPS_TO_PROCESS) - 1:
-                if not switch_to_next_shop(driver, wait, SHOPS_TO_PROCESS[i+1]):
-                    all_shops_success = False; break
         
-        if all_shops_success:
+        user_input = wait.until(EC.presence_of_element_located((By.ID, "user_mobile")))
+        slow_type(user_input, ONESHOP_USER)
+        pw_input = driver.find_element(By.ID, "user_password")
+        slow_type(pw_input, ONESHOP_PW)
+        pw_input.send_keys(Keys.ENTER)
+        
+        time.sleep(12)
+
+        wait.until(EC.element_to_be_clickable((By.XPATH, f"//div[@class='shop-name'][text()='{SHOPS_TO_PROCESS[0]}']"))).click()
+        time.sleep(8)
+
+        if process_notifications(driver, wait, SHOPS_TO_PROCESS[0], search_numbers):
             sync_to_cloud_after_notice(order_list)
-            send_line_report(f"🚀 [Step 1] 執行成功\n店鋪: {', '.join(SHOPS_TO_PROCESS)}\n訂單數: {len(order_list)}\n雲端紀錄已更新。")
+            send_line_report(f"✅ Step 1 執行成功\n訂單總數: {len(order_list)}")
         else:
-            raise Exception("部分店鋪通知發送失敗")
+            raise Exception("店鋪通知發送失敗")
 
         driver.quit()
         return True
 
     except Exception as e:
-        send_line_report(f"❌ [Step 1] 發生錯誤\n原因: {str(e)}")
-        driver.quit()
+        error_msg = str(e)
+        send_line_report(f"❌ Step 1 發生錯誤\n原因: {error_msg}")
+        try: driver.quit()
+        except: pass
         raise e 
 
 def run_step1():
@@ -244,9 +242,9 @@ def run_step1():
     for attempt in range(max_retries):
         try:
             if run_full_automation(): return True
-        except Exception as e:
+        except Exception:
             if attempt == max_retries - 1: return False
-            time.sleep(10)
+            time.sleep(15)
     return False
 
 if __name__ == "__main__":
